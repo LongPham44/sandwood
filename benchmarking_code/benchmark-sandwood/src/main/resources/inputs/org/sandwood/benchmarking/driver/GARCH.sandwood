@@ -1,0 +1,30 @@
+package org.sandwood.benchmarking.driver;
+
+public model GARCH(double[] yObserved, double sigma1) {
+    // T is the number of observations.
+    int T = yObserved.length;
+
+    // Stan declares these as constrained parameters, but does not provide explicit priors.
+    // These distributions encode proper approximations to the corresponding supports for Sandwood sampling.
+    double mu = gaussian(0.0, 10.0 * 10.0).sample();
+    double alpha0 = exponential(1.0).sample();
+
+    // The dependent Stan constraint beta1 < 1 - alpha1 describes a triangle in (alpha1, beta1).
+    // Sampling alpha1 ~ beta(1, 2), then beta1 uniformly on [0, 1 - alpha1], gives a uniform density on
+    // that triangle.
+    double alpha1 = beta(1.0, 2.0).sample();
+    double beta1 = beta(1.0, 1.0).sample() * (1.0 - alpha1);
+
+    double[] sigma = new double[T];
+    double[] y = new double[T];
+
+    sigma[0] = sigma1;
+    y[0] = gaussian(mu, sigma[0] * sigma[0]).sample();
+    for(int t = 1; t < T; t++) {
+        double err = y[t - 1] - mu;
+        sigma[t] = sqrt(alpha0 + alpha1 * err * err + beta1 * sigma[t - 1] * sigma[t - 1]);
+        y[t] = gaussian(mu, sigma[t] * sigma[t]).sample();
+    }
+
+    y.observe(yObserved);
+}

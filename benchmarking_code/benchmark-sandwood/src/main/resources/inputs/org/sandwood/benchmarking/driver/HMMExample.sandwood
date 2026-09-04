@@ -1,0 +1,55 @@
+package org.sandwood.benchmarking.driver;
+
+// Simple two-state HMM corresponding to HMMExample.stan.
+//
+// The Stan program manually marginalises the latent state sequence with the forward algorithm. In Sandwood we can
+// model the latent states directly. K is fixed to 2, as in the observed data for this benchmark.
+public model HMMExample(double[] yObserved) {
+    int K = 2;
+    int N = yObserved.length;
+
+    // Stan parameters:
+    //   simplex[K] theta1;
+    //   simplex[K] theta2;
+    // For K = 2, each simplex row can be represented by one Bernoulli probability. beta(1, 1) is the two-state
+    // equivalent of a uniform Dirichlet prior over each transition row.
+    double theta1ToState0 = beta(1.0, 1.0).sample();
+    double theta2ToState0 = beta(1.0, 1.0).sample();
+    double[] theta1 = new double[K];
+    double[] theta2 = new double[K];
+    theta1[0] = theta1ToState0;
+    theta1[1] = 1.0 - theta1ToState0;
+    theta2[0] = theta2ToState0;
+    theta2[1] = 1.0 - theta2ToState0;
+
+    // Stan parameter: positive_ordered[K] mu;
+    // Priors: mu[1] ~ normal(3, 1), mu[2] ~ normal(10, 1). Sampling the two state means and sorting them gives a
+    // simple positive ordered-state representation for this HMM.
+    double rawMu1 = truncatedGaussian(3.0, 1.0, 0.0, 1.0e100).sample();
+    double rawMu2 = truncatedGaussian(10.0, 1.0, 0.0, 1.0e100).sample();
+    double[] mu = new double[K];
+    mu[0] = rawMu1 < rawMu2 ? rawMu1 : rawMu2;
+    mu[1] = rawMu1 < rawMu2 ? rawMu2 : rawMu1;
+
+    // Latent HMM state sequence. state[t] == true denotes state 0; state[t] == false denotes state 1.
+    // The Stan forward-algorithm initialization omits an explicit log initial-state probability:
+    //     gamma[1, k] = normal_lpdf(y[1] | mu[k], 1)
+    // This is equivalent, up to a parameter-independent normalizing constant, to a uniform initial-state
+    // distribution. With K = 2, the generative Sandwood model represents this as Bernoulli(0.5).
+    boolean[] state = new boolean[N];
+    state[0] = bernoulli(0.5).sample();
+
+    for(int t = 1; t < N; t++) {
+        double transitionToState0 = state[t - 1] ? theta1[0] : theta2[0];
+        state[t] = bernoulli(transitionToState0).sample();
+    }
+
+    // Emissions: y[t] ~ normal(mu[state[t]], 1).
+    double[] y = new double[N];
+    for(int t = 0; t < N; t++) {
+        double stateMean = state[t] ? mu[0] : mu[1];
+        y[t] = gaussian(stateMean, 1.0).sample();
+    }
+
+    y.observe(yObserved);
+}

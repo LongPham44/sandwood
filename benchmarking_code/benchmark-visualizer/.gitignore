@@ -1,0 +1,17 @@
+# Python-related directories and files
+__pycache__/
+
+# Virtual environments
+.venv/
+
+# Editor settings
+.vscode/
+
+# Jupyter notebook artifacts
+.ipynb_checkpoints/
+
+# macOS-related directories and files
+.DS_Store
+
+# Bin directory storing data and plots
+bin/

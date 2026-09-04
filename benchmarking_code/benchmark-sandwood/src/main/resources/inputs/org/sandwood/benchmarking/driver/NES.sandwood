@@ -1,0 +1,30 @@
+package org.sandwood.benchmarking.driver;
+
+public model NES(double[] partyid7Observed, double[] real_ideo, double[] race_adj, double[] educ1,
+                 double[] gender, double[] income, int[] age_discrete) {
+    int N = partyid7Observed.length;
+
+    // transformed data: age as factor indicators
+    double[] age30_44 = new double[N];
+    double[] age45_64 = new double[N];
+    double[] age65up = new double[N];
+    for(int n = 0; n < N; n++) {
+        age30_44[n] = age_discrete[n] == 2 ? 1.0 : 0.0;
+        age45_64[n] = age_discrete[n] == 3 ? 1.0 : 0.0;
+        age65up[n] = age_discrete[n] == 4 ? 1.0 : 0.0;
+    }
+
+    // Stan leaves beta and sigma with improper uniform priors. Use broad proper priors in Sandwood.
+    double[] beta = gaussian(0.0, 10.0 * 10.0).sample(9);
+    double sigma = halfCauchy(0.0, 10.0).sample();
+
+    // partyid7 ~ normal(linear predictor, sigma)
+    double[] partyid7 = new double[N];
+    for(int n = 0; n < N; n++) {
+        double mu = beta[0] + beta[1] * real_ideo[n] + beta[2] * race_adj[n]
+                + beta[3] * age30_44[n] + beta[4] * age45_64[n] + beta[5] * age65up[n]
+                + beta[6] * educ1[n] + beta[7] * gender[n] + beta[8] * income[n];
+        partyid7[n] = gaussian(mu, sigma * sigma).sample();
+    }
+    partyid7.observe(partyid7Observed);
+}

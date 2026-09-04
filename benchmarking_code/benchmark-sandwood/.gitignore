@@ -1,0 +1,13 @@
+# Operating system files
+.DS_Store
+
+# Java build artifacts
+*.class
+out/
+target/
+expectedOutputs/
+
+# Code editor files
+.idea/
+*.iml
+.vscode/

@@ -1,0 +1,29 @@
+package org.sandwood.benchmarking.driver;
+
+public model SBLRC(double[] yObserved, double[][] X) {
+    int N = yObserved.length;
+    int D = X[0].length;
+
+    // prior: beta ~ normal(0, 10); sigma ~ normal(0, 10) constrained to sigma > 0 in Stan.
+    double[] beta = gaussian(0.0, 10.0 * 10.0).sample(D);
+
+    // Stan's positive sigma with normal_lpdf(sigma | 0, 10) is a normal/Gaussian prior truncated to
+    // non-negative support. Sandwood's truncatedGaussian requires a finite upper-bound expression in
+    // this source form, so use a very large upper bound to represent Stan's unbounded upper support.
+    double sigma = truncatedGaussian(0.0, 10.0 * 10.0, 0.0, 1.0e100).sample();
+
+    // likelihood: y ~ normal(X * beta, sigma)
+    double[] y = new double[N];
+    for(int n = 0; n < N; n++) {
+        double[] productXAndBeta = new double[D];
+
+        for(int d = 0; d < D; d++) {
+            productXAndBeta[d] = X[n][d] * beta[d];
+        }
+
+        double mu = reduce (productXAndBeta, 0, (i, j) -> { return i + j; });
+        y[n] = gaussian(mu, sigma * sigma).sample();
+    }
+
+    y.observe(yObserved);
+}

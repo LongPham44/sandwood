@@ -1,0 +1,35 @@
+package org.sandwood.benchmarking.driver;
+
+public model SequentialTrajectories(double[][] obsViews,
+                        double[][] obsViewsLags,  // lagged array is shifted (and padded by 0) by 5 positions. obsViewsLags[t] is therefore obsViews[t+5]
+                        double[][] obsSharesLag1 ) {
+    int nVideos = obsViews.length;
+
+    int nLags = 5;
+    int M = 4096;
+    int nCat = 10;
+
+    // priors
+    double gamma = beta(1,20).sample(); //discounting coefficient, should be super small but positive
+
+    double a = gaussian(5,10).sample();
+    double[] b = beta(1,10).sample(nLags);
+    double c = beta(1,1).sample();
+    double sigma2 = exponential(1).sample();
+
+    double[][] views = new double[nVideos][];
+    double[] qualities = beta(1,1).sample(nVideos);
+
+    for(int i : [0..nVideos)) {
+       views[i] = new double[obsViews[i].length];
+       for(int t : [0..obsViews[i].length)) {
+            double prob =     1.0 / (1 + exp(a - b[0]*obsViewsLags[i][t+4] - b[1]*obsViewsLags[i][t+3] - b[2]*obsViewsLags[i][t+2]  - b[3]*obsViewsLags[i][t+1] - b[4]*obsViewsLags[i][t]));
+            double mu = qualities[i]*(exp(-gamma*t) * (M) * prob + c*obsSharesLag1[i][t]);
+            double var = sigma2*(obsViewsLags[i][t+4] +1);
+            public Gaussian views_rnd = new Gaussian(mu , var);
+            views[i][t] = views_rnd.sample();
+       }
+    }
+
+    views.observe(obsViews);
+}

@@ -1,0 +1,37 @@
+package org.sandwood.benchmarking.driver;
+
+// Latent Dirichlet Allocation with K = 5 topics, corresponding to LDAK5.stan.
+//
+// The Stan program marginalises the latent topic assignment for each word using
+// log_sum_exp(log(theta[doc[n], k]) + log(phi[k, w[n]])). In Sandwood we express
+// the same LDA model generatively by sampling the latent topic assignment z[n]
+// explicitly, then sampling the observed word from the selected topic-word distribution.
+//
+// The Java input provider converts the Stan/JSON one-indexed word and document ids to
+// zero-indexed ids before calling this model.
+public model LDAK5(int M, int[] wObserved, int[] doc, double[] alpha, double[] beta) {
+    int K = alpha.length;
+    int V = beta.length;
+    int N = wObserved.length;
+
+    // Stan parameters:
+    //   array[M] simplex[5] theta;  // topic distribution for each document
+    //   array[5] simplex[V] phi;    // word distribution for each topic
+    // Priors:
+    //   theta[m] ~ dirichlet(alpha)
+    //   phi[k] ~ dirichlet(beta)
+    double[][] theta = dirichlet(alpha).sample(M);
+    double[][] phi = dirichlet(beta).sample(K);
+
+    // Likelihood with explicit latent topics:
+    //   z[n] ~ categorical(theta[doc[n]])
+    //   w[n] ~ categorical(phi[z[n]])
+    int[] z = new int[N];
+    int[] w = new int[N];
+    for(int n = 0; n < N; n++) {
+        z[n] = categorical(theta[doc[n]]).sample();
+        w[n] = categorical(phi[z[n]]).sample();
+    }
+
+    w.observe(wObserved);
+}

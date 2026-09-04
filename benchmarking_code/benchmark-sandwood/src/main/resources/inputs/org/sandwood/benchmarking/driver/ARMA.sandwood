@@ -1,0 +1,32 @@
+package org.sandwood.benchmarking.driver;
+
+public model ARMA(double[] yObserved) {
+    // T is the number of observations.
+    int T = yObserved.length;
+
+    // ARMA(1, 1) parameters.
+    double mu = gaussian(0.0, 10.0 * 10.0).sample();
+    double phi = gaussian(0.0, 2.0 * 2.0).sample();
+    double theta = gaussian(0.0, 2.0 * 2.0).sample();
+    double sigma = halfCauchy(0.0, 2.5).sample();
+
+    // nu[t] is the conditional prediction for y[t].
+    // err[t] is the innovation for time t.
+    double[] nu = new double[T];
+    double[] err = new double[T];
+
+    // Initialize the recursion by assuming the previous innovation is zero.
+    nu[0] = mu + phi * mu;
+    err[0] = gaussian(0.0, sigma * sigma).sample();
+
+    for(int t = 1; t < T; t++) {
+        nu[t] = mu + phi * yObserved[t - 1] + theta * err[t - 1];
+        err[t] = gaussian(0.0, sigma * sigma).sample();
+    }
+
+    // Enforce y[t] = nu[t] + err[t] using a narrow Gaussian observation.
+    for(int t = 0; t < T; t++) {
+        double zero = gaussian(nu[t] - yObserved[t] + err[t], 0.001 * 0.001).sample();
+        zero.observe(0.0);
+    }
+}

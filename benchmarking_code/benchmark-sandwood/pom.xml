@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.sandwood</groupId>
+    <artifactId>benchmarking</artifactId>
+    <version>0.6.0-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>25</maven.compiler.release>
+        <jackson.version>2.15.2</jackson.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <!--
+          The existing IntelliJ module references these locally built Sandwood jars.
+          Keeping them here lets Maven compile this benchmark project without changing
+          the current repository layout.
+        -->
+        <dependency>
+            <groupId>org.sandwood</groupId>
+            <artifactId>sandwood-compiler</artifactId>
+            <version>0.6.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>/Users/longpham/Research-code/AugurJ/Sandwood/compiler/target/sandwood-compiler-0.6.0-SNAPSHOT-jar-with-dependencies.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>org.sandwood</groupId>
+            <artifactId>sandwood-runtime</artifactId>
+            <version>0.6.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>/Users/longpham/Research-code/AugurJ/Sandwood/runtime/target/sandwood-runtime-0.6.0-SNAPSHOT-jar-with-dependencies.jar</systemPath>
+        </dependency>
+    </dependencies>
+</project>

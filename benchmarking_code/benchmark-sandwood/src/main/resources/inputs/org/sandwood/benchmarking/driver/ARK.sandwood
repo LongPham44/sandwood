@@ -1,0 +1,25 @@
+package org.sandwood.benchmarking.driver;
+
+public model ARK(int K, double[] yObserved) {
+    double alpha = gaussian(0.0, 10 * 10).sample();
+    double[] beta = gaussian(0.0, 10 * 10).sample(K);
+    double sigma = halfCauchy(0.0, 2.5).sample();
+
+    // T is the number of observations
+    int T = yObserved.length;
+
+    // Observed array variable
+    double[] y = new double[T];
+
+    for(int t = K; t < T; t++) {
+        double[] productArray = new double[K];
+        for(int k = 0; k < K; k++) {
+            productArray[k] = beta[k] * y[t - k - 1];
+        }
+
+        double mu = reduce (productArray, alpha, (i, j) -> { return i + j; });
+        y[t] = gaussian(mu, sigma * sigma).sample();
+    }
+
+    y.observe(yObserved);
+}
